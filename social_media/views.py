@@ -16,6 +16,24 @@ class ProfileViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.Re
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def get_queryset(self):
+        """Retrieve the profiles with filters"""
+        queryset = self.queryset
+
+        bio = self.request.query_params.get("bio")
+        created_at = self.request.query_params.get("created_at")
+        user_email = self.request.query_params.get("user_email")
+
+        if bio:
+            queryset = queryset.filter(bio__icontains=bio)
+
+        if created_at:
+            queryset = queryset.filter(created_at__date=created_at)
+
+        if user_email:
+            queryset = queryset.filter(user__email__icontains=user_email)
+        return queryset.distinct()
+
     def get_serializer_class(self):
         if self.action in ("list", "retrieve"):
             return ProfileListSerializer
