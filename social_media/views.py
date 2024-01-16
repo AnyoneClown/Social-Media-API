@@ -1,6 +1,7 @@
 from django.shortcuts import render
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from social_media.models import Profile
 from social_media.permissions import IsOwnerOrReadOnly
