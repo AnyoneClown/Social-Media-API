@@ -3,6 +3,8 @@ from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from .tasks import create_post
+
 
 from social_media.models import Profile, Follow, Post, Like, Commentary
 from social_media.permissions import IsOwnerOrReadOnly
@@ -176,3 +178,17 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = CommentaryPostSerializer(comment)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["POST"], url_path="schedule-post-creation", permission_classes=[IsAuthenticated])
+    def schedule_post_creation(self, request):
+        user_id = request.user.id
+        title = request.data.get('title')
+        content = request.data.get('content')
+        scheduled_time = request.data.get('scheduled_time')
+
+        if not title or not content or not scheduled_time:
+            return Response({"error": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        create_post.apply_async(args=[user_id, title, content, scheduled_time], eta=scheduled_time)
+
+        return Response({'message': f'Post "{title}" scheduled for {scheduled_time}'}, status=status.HTTP_200_OK)
