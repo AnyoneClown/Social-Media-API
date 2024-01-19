@@ -4,7 +4,6 @@ from django.utils.translation import gettext as _
 
 
 class UserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = get_user_model()
         fields = ("id", "username", "email", "password", "is_staff")

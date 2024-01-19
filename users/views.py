@@ -20,7 +20,6 @@ class LogoutView(generics.GenericAPIView):
     permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
 
-
     def get(self, request, format=None):
         request.user.auth_token.delete()
         return Response(status=status.HTTP_200_OK)

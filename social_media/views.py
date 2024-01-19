@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from django.shortcuts import render
+
 from django.utils import timezone
 from rest_framework import mixins, viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .tasks import create_post
@@ -11,9 +11,18 @@ from .tasks import create_post
 
 from social_media.models import Profile, Follow, Post, Like, Commentary
 from social_media.permissions import IsOwnerOrReadOnly
-from social_media.serializers import ProfileSerializer, ProfileListSerializer, FollowSerializer, FollowListSerializer, \
-    ProfileDetailSerializer, FollowProfileSerializer, FollowingSerializer, PostSerializer, PostListSerializer, \
-    PostDetailSerializer, CommentaryPostSerializer
+from social_media.serializers import (
+    ProfileSerializer,
+    ProfileListSerializer,
+    ProfileDetailSerializer,
+    FollowProfileSerializer,
+    FollowingSerializer,
+    PostSerializer,
+    PostListSerializer,
+    PostDetailSerializer,
+    CommentaryPostSerializer,
+    CommentarySerializer,
+)
 
 
 class ProfileViewSet(viewsets.ModelViewSet):
@@ -49,57 +58,75 @@ class ProfileViewSet(viewsets.ModelViewSet):
             return ProfileDetailSerializer
         return self.serializer_class
 
-    @action(detail=True, methods=["GET"], url_path="follow-toggle", permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["GET"],
+        url_path="follow-toggle",
+        permission_classes=[IsAuthenticated],
+    )
     def follow_toggle(self, request, pk=None):
         profile = self.get_object()
         follower = request.user
 
         if follower == profile.user:
-            return Response({"detail": "Cannot follow yourself."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Cannot follow yourself."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        follow_instance, created = Follow.objects.get_or_create(user=follower, following=profile)
+        follow_instance, created = Follow.objects.get_or_create(
+            user=follower, following=profile
+        )
 
         if not created:
             follow_instance.delete()
-            return Response({"detail": "Successfully unfollowed the profile."}, status=status.HTTP_200_OK)
+            return Response(
+                {"detail": "Successfully unfollowed the profile."},
+                status=status.HTTP_200_OK,
+            )
 
-        return Response({"detail": "Successfully followed the profile."}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"detail": "Successfully followed the profile."},
+            status=status.HTTP_201_CREATED,
+        )
 
-    @action(detail=True, methods=["GET"], url_path="followers", permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["GET"],
+        url_path="followers",
+        permission_classes=[IsAuthenticated],
+    )
     def followers(self, request, pk=None):
         profile = self.get_object()
 
-        followers = Follow.objects.filter(following__user=profile.user).select_related("user", "following")
+        followers = Follow.objects.filter(following__user=profile.user).select_related(
+            "user", "following"
+        )
         serializer = FollowProfileSerializer(followers, many=True)
 
         return Response(serializer.data)
 
-    @action(detail=True, methods=["GET"], url_path="following", permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["GET"],
+        url_path="following",
+        permission_classes=[IsAuthenticated],
+    )
     def following(self, request, pk=None):
         profile = self.get_object()
 
-        following_profiles = Follow.objects.filter(user=profile.user).select_related("user", "following")
+        following_profiles = Follow.objects.filter(user=profile.user).select_related(
+            "user", "following"
+        )
         serializer = FollowingSerializer(following_profiles, many=True)
 
         return Response(serializer.data)
 
 
-class FollowViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    serializer_class = FollowSerializer
-    queryset = Follow.objects.select_related("user", "following", "following__user")
-    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return FollowListSerializer
-        return self.serializer_class
-
-
 class PostViewSet(viewsets.ModelViewSet):
-    queryset = Post.objects.prefetch_related("likes__user", "commentaries__user").select_related("user")
+    queryset = Post.objects.prefetch_related(
+        "likes__user", "commentaries__user"
+    ).select_related("user")
     serializer_class = PostSerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
@@ -135,7 +162,12 @@ class PostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return self.serializer_class
 
-    @action(detail=False, methods=["GET"], url_path="my-posts", permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="my-posts",
+        permission_classes=[IsAuthenticated],
+    )
     def my_posts(self, request):
         user = request.user
 
@@ -144,18 +176,30 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data)
 
-    @action(detail=False, methods=["GET"], url_path="following-posts", permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="following-posts",
+        permission_classes=[IsAuthenticated],
+    )
     def following_posts(self, request):
         user = request.user
 
-        following_users = Follow.objects.filter(user=user).values_list("following__user", flat=True)
+        following_users = Follow.objects.filter(user=user).values_list(
+            "following__user", flat=True
+        )
 
         posts = Post.objects.filter(user__in=following_users)
         serializer = PostListSerializer(posts, many=True)
 
         return Response(serializer.data)
 
-    @action(detail=True, methods=["GET"], url_path="like-toggle", permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["GET"],
+        url_path="like-toggle",
+        permission_classes=[IsAuthenticated],
+    )
     def like_toggle(self, request, pk=None):
         post = self.get_object()
         user = request.user
@@ -164,41 +208,85 @@ class PostViewSet(viewsets.ModelViewSet):
 
         if not created:
             like_instance.delete()
-            return Response({"detail": "Successfully unliked the post."}, status=status.HTTP_200_OK)
+            return Response(
+                {"detail": "Successfully unliked the post."}, status=status.HTTP_200_OK
+            )
 
-        return Response({"detail": "Successfully liked the post."}, status=status.HTTP_201_CREATED)
+        return Response(
+            {"detail": "Successfully liked the post."}, status=status.HTTP_201_CREATED
+        )
 
-    @action(detail=True, methods=["POST"], url_path="add-comment", permission_classes=[IsAuthenticated])
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path="add-comment",
+        permission_classes=[IsAuthenticated],
+    )
     def add_comment(self, request, pk=None):
         post = self.get_object()
 
         content = request.data.get("content")
 
         if not content:
-            return Response({"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
-        comment = Commentary.objects.create(user=request.user, post=post, content=content)
+        comment = Commentary.objects.create(
+            user=request.user, post=post, content=content
+        )
         serializer = CommentaryPostSerializer(comment)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["POST"], url_path="schedule-post-creation", permission_classes=[IsAuthenticated])
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="schedule-post-creation",
+        permission_classes=[IsAuthenticated],
+    )
     def schedule_post_creation(self, request):
         user_id = request.user.id
-        title = request.data.get('title')
-        content = request.data.get('content')
-        scheduled_time = request.data.get('scheduled_time')
+        title = request.data.get("title")
+        content = request.data.get("content")
+        scheduled_time = request.data.get("scheduled_time")
 
-        scheduled_time = datetime.strptime(scheduled_time, '%Y-%m-%d %H:%M:%S.%f%z')
+        scheduled_time = datetime.strptime(scheduled_time, "%Y-%m-%d %H:%M:%S.%f%z")
 
         print(timezone.now())
 
         if not title or not content or not scheduled_time:
-            return Response({"error": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if scheduled_time < timezone.now():
-            return Response({"error": "Scheduled data must be in the future"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Scheduled data must be in the future"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        create_post.apply_async(args=[user_id, title, content, scheduled_time], eta=scheduled_time)
+        create_post.apply_async(
+            args=[user_id, title, content, scheduled_time], eta=scheduled_time
+        )
 
-        return Response({'message': f'Post "{title}" scheduled for {scheduled_time}'}, status=status.HTTP_200_OK)
+        return Response(
+            {"message": f'Post "{title}" scheduled for {scheduled_time}'},
+            status=status.HTTP_200_OK,
+        )
+
+
+class CommentaryViewSet(
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = Commentary.objects.select_related("user", "post")
+    serializer_class = CommentarySerializer
+    permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
+
+    def get_serializer_class(self):
+        if self.action in ("list", "retrieve"):
+            return CommentaryPostSerializer
+        return self.serializer_class
