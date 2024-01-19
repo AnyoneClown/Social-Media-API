@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.shortcuts import render
+from django.utils import timezone
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -186,8 +189,15 @@ class PostViewSet(viewsets.ModelViewSet):
         content = request.data.get('content')
         scheduled_time = request.data.get('scheduled_time')
 
+        scheduled_time = datetime.strptime(scheduled_time, '%Y-%m-%d %H:%M:%S.%f%z')
+
+        print(timezone.now())
+
         if not title or not content or not scheduled_time:
             return Response({"error": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if scheduled_time < timezone.now():
+            return Response({"error": "Scheduled data must be in the future"}, status=status.HTTP_400_BAD_REQUEST)
 
         create_post.apply_async(args=[user_id, title, content, scheduled_time], eta=scheduled_time)
 
