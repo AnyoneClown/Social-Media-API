@@ -130,6 +130,26 @@ class PostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return self.serializer_class
 
+    @action(detail=False, methods=["GET"], url_path="my-posts", permission_classes=[IsAuthenticated])
+    def my_posts(self, request):
+        user = request.user
+
+        posts = Post.objects.filter(user=user)
+        serializer = PostListSerializer(posts, many=True)
+
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["GET"], url_path="following-posts", permission_classes=[IsAuthenticated])
+    def following_posts(self, request):
+        user = request.user
+
+        following_users = Follow.objects.filter(user=user).values_list("following__user", flat=True)
+
+        posts = Post.objects.filter(user__in=following_users)
+        serializer = PostListSerializer(posts, many=True)
+
+        return Response(serializer.data)
+
     @action(detail=True, methods=["GET"], url_path="like-toggle", permission_classes=[IsAuthenticated])
     def like_toggle(self, request, pk=None):
         post = self.get_object()
@@ -156,27 +176,3 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = CommentaryPostSerializer(comment)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def my_posts(request):
-    user = request.user
-
-    posts = Post.objects.filter(user=user)
-    serializer = PostListSerializer(posts, many=True)
-
-    return Response(serializer.data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def following_posts(request):
-    user = request.user
-
-    following_users = Follow.objects.filter(user=user).values_list("following__user", flat=True)
-
-    posts = Post.objects.filter(user__in=following_users)
-    serializer = PostListSerializer(posts, many=True)
-
-    return Response(serializer.data)
