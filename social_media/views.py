@@ -8,7 +8,7 @@ from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .tasks import create_post
+from social_media.tasks import create_post
 
 
 from social_media.models import Profile, Follow, Post, Like, Commentary
