@@ -1,0 +1,7 @@
+venv
+.gitignore
+.flake8
+README.md
+.env.sample
+media
+db.sqlite3
