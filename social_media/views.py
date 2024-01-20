@@ -204,7 +204,7 @@ class PostViewSet(viewsets.ModelViewSet):
                 description="Filter by post content (ex. ?content=USA)",
             ),
             OpenApiParameter(
-                "content",
+                "created_at",
                 type=OpenApiTypes.STR,
                 description="Filter by post created date (ex. ?created_at=2021-01-01)",
             ),
