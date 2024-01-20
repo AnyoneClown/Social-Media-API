@@ -2,6 +2,8 @@ from datetime import datetime
 
 
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -57,6 +59,28 @@ class ProfileViewSet(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return ProfileDetailSerializer
         return self.serializer_class
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "user_email",
+                type=OpenApiTypes.STR,
+                description="Filter by profile user email (ex. ?user_email=admin@gmail.com)",
+            ),
+            OpenApiParameter(
+                "created_at",
+                type=OpenApiTypes.STR,
+                description="Filter by profile creating date (ex. ?created_at=2023-01-01)",
+            ),
+            OpenApiParameter(
+                "bio",
+                type=OpenApiTypes.STR,
+                description="Filter by profile bio (ex. ?bio=User)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(
         detail=True,
@@ -161,6 +185,33 @@ class PostViewSet(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return PostDetailSerializer
         return self.serializer_class
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "title",
+                type=OpenApiTypes.STR,
+                description="Filter by post title (ex. ?title=War)",
+            ),
+            OpenApiParameter(
+                "owner",
+                type=OpenApiTypes.STR,
+                description="Filter by post owner (ex. ?owner=admin@gmail.com)",
+            ),
+            OpenApiParameter(
+                "content",
+                type=OpenApiTypes.STR,
+                description="Filter by post content (ex. ?content=USA)",
+            ),
+            OpenApiParameter(
+                "content",
+                type=OpenApiTypes.STR,
+                description="Filter by post created date (ex. ?created_at=2021-01-01)",
+            ),
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(
         detail=False,
