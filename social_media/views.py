@@ -84,7 +84,7 @@ class ProfileViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["GET"],
+        methods=["POST"],
         url_path="follow-toggle",
         permission_classes=[IsAuthenticated],
     )
@@ -247,7 +247,7 @@ class PostViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=["GET"],
+        methods=["POST"],
         url_path="like-toggle",
         permission_classes=[IsAuthenticated],
     )
@@ -275,19 +275,13 @@ class PostViewSet(viewsets.ModelViewSet):
     )
     def add_comment(self, request, pk=None):
         post = self.get_object()
+        data = request.data.copy()
 
-        content = request.data.get("content")
+        data.update({"user": request.user.id})
+        serializer = CommentaryPostSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
 
-        if not content:
-            return Response(
-                {"error": "Content is required."}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        comment = Commentary.objects.create(
-            user=request.user, post=post, content=content
-        )
-        serializer = CommentaryPostSerializer(comment)
-
+        Commentary.objects.create(user=request.user, post=post, content=serializer.validated_data["content"])
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -297,19 +291,14 @@ class PostViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def schedule_post_creation(self, request):
-        user_id = request.user.id
-        title = request.data.get("title")
-        content = request.data.get("content")
         scheduled_time = request.data.get("scheduled_time")
-
         scheduled_time = datetime.strptime(scheduled_time, "%Y-%m-%d %H:%M:%S.%f%z")
 
-        print(timezone.now())
+        data = request.data.copy()
+        data.update({"user": request.user.id})
 
-        if not title or not content or not scheduled_time:
-            return Response(
-                {"error": "Missing required data"}, status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = PostSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
 
         if scheduled_time < timezone.now():
             return Response(
@@ -318,14 +307,14 @@ class PostViewSet(viewsets.ModelViewSet):
             )
 
         create_post.apply_async(
-            args=[user_id, title, content, scheduled_time], eta=scheduled_time
+            args=[serializer.validated_data.get("user"), serializer.validated_data.get("title"),
+                  serializer.validated_data.get("content"), scheduled_time], eta=scheduled_time
         )
 
         return Response(
-            {"message": f'Post "{title}" scheduled for {scheduled_time}'},
+            {"message": f'Post "{serializer.validated_data.get("title")}" scheduled for {scheduled_time}'},
             status=status.HTTP_200_OK,
         )
-
 
 class CommentaryViewSet(
     mixins.ListModelMixin,
