@@ -8,6 +8,6 @@ router.register("profiles", ProfileViewSet)
 router.register("posts", PostViewSet)
 router.register("comments", CommentaryViewSet)
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = router.urls
 
 app_name = "social_media"
