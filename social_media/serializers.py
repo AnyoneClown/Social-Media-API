@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-
 from social_media.models import Profile, Follow, Post, Like, Commentary
 
 
