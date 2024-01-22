@@ -50,8 +50,8 @@ class Follow(models.Model):
 
 class Post(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    title = models.CharField(max_length=255)
-    content = models.TextField()
+    title = models.CharField(max_length=255, blank=False, null=False)
+    content = models.TextField(blank=False, null=False)
     image = models.ImageField(null=True, upload_to=post_image_file_path)
     created_at = models.DateTimeField(auto_now_add=True)
     likes = models.ManyToManyField("Like", related_name="post_likes")
@@ -79,5 +79,5 @@ class Commentary(models.Model):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name="post_commentary"
     )
-    content = models.TextField()
+    content = models.TextField(null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
