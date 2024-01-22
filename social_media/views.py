@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -8,9 +7,8 @@ from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 from social_media.tasks import create_post
-
-
 from social_media.models import Profile, Follow, Post, Like, Commentary
 from social_media.permissions import IsOwnerOrReadOnly
 from social_media.serializers import (
@@ -281,7 +279,9 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = CommentaryPostSerializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        Commentary.objects.create(user=request.user, post=post, content=serializer.validated_data["content"])
+        Commentary.objects.create(
+            user=request.user, post=post, content=serializer.validated_data["content"]
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -307,14 +307,22 @@ class PostViewSet(viewsets.ModelViewSet):
             )
 
         create_post.apply_async(
-            args=[serializer.validated_data.get("user"), serializer.validated_data.get("title"),
-                  serializer.validated_data.get("content"), scheduled_time], eta=scheduled_time
+            args=[
+                serializer.validated_data.get("user"),
+                serializer.validated_data.get("title"),
+                serializer.validated_data.get("content"),
+                scheduled_time,
+            ],
+            eta=scheduled_time,
         )
 
         return Response(
-            {"message": f'Post "{serializer.validated_data.get("title")}" scheduled for {scheduled_time}'},
+            {
+                "message": f'Post "{serializer.validated_data.get("title")}" scheduled for {scheduled_time}'
+            },
             status=status.HTTP_200_OK,
         )
+
 
 class CommentaryViewSet(
     mixins.ListModelMixin,
