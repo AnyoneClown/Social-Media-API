@@ -1,8 +1,5 @@
-from datetime import datetime
-
 from celery import shared_task
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from .models import Post
 
 
