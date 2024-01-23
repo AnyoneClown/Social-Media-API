@@ -1,1 +1,7 @@
 .idea
+db.sqlite3
+**pycha
+venv
+**__pycache__/
+media
+.env
